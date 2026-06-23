@@ -1,0 +1,80 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Eclipse
+.project
+.classpath
+.settings/
+.springBeans
+.sts4-cache/
+
+# VS Code
+.vscode/
+
+# NetBeans
+/nbproject/private/
+/build/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Environment Files
+.env
+.env.*
+
+# Application Secrets
+application-local.properties
+application-prod.properties
+
+# Maven Wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# Java
+*.jar
+*.war
+*.ear
+
+# Temporary Files
+*.tmp
+*.swp
+*.bak
+
+# Test Reports
+surefire-reports/
+failsafe-reports/
+
+# Coverage Reports
+coverage/
+jacoco.exec
+
+# Spring Boot
+logs/
+
+# SQL Server Backup Files
+*.bak
+*.mdf
+*.ldf
+
+# Generated Files
+out/
+bin/
