@@ -14,9 +14,12 @@ import com.tharun.vessel_risk.repository.ShipmentRepository;
 import com.tharun.vessel_risk.repository.VesselScheduleRepository;
 import com.tharun.vessel_risk.dto.VoyageRiskSummaryResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
+
 public class DashboardService {
 
     private final VesselScheduleRepository vesselScheduleRepository;
