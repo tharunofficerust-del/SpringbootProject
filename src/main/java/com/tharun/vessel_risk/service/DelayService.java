@@ -9,19 +9,24 @@ import com.tharun.vessel_risk.dto.DelayResponse;
 import com.tharun.vessel_risk.entity.DelayReport;
 import com.tharun.vessel_risk.entity.Shipment;
 import com.tharun.vessel_risk.entity.VesselSchedule;
+import com.tharun.vessel_risk.enums.CargoType;
 import com.tharun.vessel_risk.enums.RiskLevel;
 import com.tharun.vessel_risk.enums.ShipmentStatus;
+import com.tharun.vessel_risk.enums.VesselStatus;
 import com.tharun.vessel_risk.exception.BusinessValidationException;
 import com.tharun.vessel_risk.exception.ResourceNotFoundException;
 import com.tharun.vessel_risk.mapper.DelayMapper;
 import com.tharun.vessel_risk.repository.DelayReportRepository;
 import com.tharun.vessel_risk.repository.ShipmentRepository;
 import com.tharun.vessel_risk.repository.VesselScheduleRepository;
-
+import com.tharun.vessel_risk.enums.CargoType;
+import com.tharun.vessel_risk.enums.Priority;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DelayService {
 
     private final DelayReportRepository delayReportRepository;
@@ -43,10 +48,56 @@ public class DelayService {
                                 new ResourceNotFoundException(
                                         "Vessel not found"));
 
+        validateDelayRequest(request, vessel);
+
+        DelayReport delayReport =
+                DelayReport.builder()
+                        .delayReason(request.getDelayReason())
+                        .delayHours(request.getDelayHours())
+                        .reportedPort(request.getReportedPort())
+                        .remarks(request.getRemarks())
+                        .reportedDate(request.getReportedDate())
+                        .vesselSchedule(vessel)
+                        .build();
+
+        DelayReport saved =
+        delayReportRepository.save(delayReport);
+
+        log.info(
+                "Delay report created for voyage {} with {} hours",
+                request.getVoyageNumber(),
+                request.getDelayHours());
+
+        recalculateEta(vessel);
+
+        updateRiskLevel(vessel);
+
+        updateShipmentRiskStatus(vessel);
+
+        return delayMapper.toResponse(saved);
+    }
+
+    private void validateDelayRequest(
+            CreateDelayReportRequest request,
+            VesselSchedule vessel) {
+
+        if (vessel.getScheduleStatus() != VesselStatus.DEPARTED
+                && vessel.getScheduleStatus() != VesselStatus.IN_TRANSIT) {
+
+            throw new BusinessValidationException(
+                    "Delay can only be reported for DEPARTED or IN_TRANSIT vessels");
+        }
+
         if (request.getDelayHours() <= 0) {
 
             throw new BusinessValidationException(
                     "Delay hours must be greater than zero");
+        }
+
+        if (request.getDelayHours() > 120) {
+
+            throw new BusinessValidationException(
+                    "Maximum delay hours allowed is 120");
         }
 
         boolean duplicate =
@@ -62,27 +113,6 @@ public class DelayService {
             throw new BusinessValidationException(
                     "Duplicate delay report found");
         }
-
-        DelayReport delayReport =
-                DelayReport.builder()
-                        .delayReason(request.getDelayReason())
-                        .delayHours(request.getDelayHours())
-                        .reportedPort(request.getReportedPort())
-                        .remarks(request.getRemarks())
-                        .reportedDate(request.getReportedDate())
-                        .vesselSchedule(vessel)
-                        .build();
-
-        DelayReport saved =
-                delayReportRepository.save(delayReport);
-
-        recalculateEta(vessel);
-
-        updateRiskLevel(vessel);
-
-        updateShipmentRiskStatus(vessel);
-
-        return delayMapper.toResponse(saved);
     }
 
     public List<DelayResponse> getDelayReports(
@@ -109,6 +139,10 @@ public class DelayService {
                         .plusHours(totalDelayHours));
 
         vesselScheduleRepository.save(vesselSchedule);
+        log.info(
+        "ETA recalculated for voyage {}. New ETA: {}",
+        vesselSchedule.getVoyageNumber(),
+        vesselSchedule.getCurrentEta());
     }
 
     private void updateRiskLevel(
@@ -137,25 +171,114 @@ public class DelayService {
         }
 
         vesselScheduleRepository.save(vesselSchedule);
-    }
+        log.info(
+                "Risk level updated for voyage {} -> {}",
+                vesselSchedule.getVoyageNumber(),
+                vesselSchedule.getRiskLevel());
+        }
 
     private void updateShipmentRiskStatus(
-            VesselSchedule vesselSchedule) {
+        VesselSchedule vesselSchedule) {
 
-        if (vesselSchedule.getRiskLevel() != RiskLevel.HIGH
-                && vesselSchedule.getRiskLevel() != RiskLevel.CRITICAL) {
-
-            return;
-        }
+        Integer totalDelayHours =
+                delayReportRepository
+                        .getTotalDelayHoursByVessel(
+                                vesselSchedule.getId());
 
         List<Shipment> shipments =
                 shipmentRepository.findByVesselScheduleId(
                         vesselSchedule.getId());
 
-        shipments.forEach(shipment ->
+        shipments.forEach(shipment -> {
+
+                if (shipment.getRequiredDeliveryDate() == null) {
+
+                return;
+                }
+
+                boolean etaExceeded =
+                        vesselSchedule.getCurrentEta()
+                                .isAfter(
+                                        shipment.getRequiredDeliveryDate());
+
+                if (!etaExceeded) {
+
+                return;
+                }
+
+                // HAZARDOUS cargo
+                if (shipment.getCargoType() == CargoType.HAZARDOUS) {
+
                 shipment.setShipmentStatus(
-                        ShipmentStatus.AT_RISK));
+                        ShipmentStatus.DELAYED);
+
+                return;
+                }
+
+                // REEFER cargo
+                if (shipment.getCargoType() == CargoType.REEFER
+                        && totalDelayHours > 24) {
+
+                shipment.setShipmentStatus(
+                        ShipmentStatus.DELAYED);
+
+                return;
+                }
+
+                // CRITICAL priority
+                if (shipment.getPriority() == Priority.CRITICAL) {
+
+                shipment.setShipmentStatus(
+                        ShipmentStatus.DELAYED);
+
+                return;
+                }
+
+                // FRAGILE cargo
+                if (shipment.getCargoType() == CargoType.FRAGILE) {
+
+                shipment.setShipmentStatus(
+                        ShipmentStatus.AT_RISK);
+
+                return;
+                }
+
+                // General rule
+                if (totalDelayHours <= 48) {
+
+                shipment.setShipmentStatus(
+                        ShipmentStatus.AT_RISK);
+
+                } else {
+
+                shipment.setShipmentStatus(
+                        ShipmentStatus.DELAYED);
+                }
+
+        });
 
         shipmentRepository.saveAll(shipments);
-    }
+
+        log.info(
+        "Shipment risk classification completed for voyage {}",
+        vesselSchedule.getVoyageNumber());
+        }
+
+    public void recalculateEtaForVoyage(
+        String voyageNumber) {
+
+        VesselSchedule vesselSchedule =
+                vesselScheduleRepository
+                        .findByVoyageNumber(
+                                voyageNumber)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Vessel not found"));
+
+        recalculateEta(vesselSchedule);
+
+        updateRiskLevel(vesselSchedule);
+
+        updateShipmentRiskStatus(vesselSchedule);
+        }
 }

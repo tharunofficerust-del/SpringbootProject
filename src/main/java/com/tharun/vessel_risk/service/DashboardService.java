@@ -12,7 +12,7 @@ import com.tharun.vessel_risk.enums.ShipmentStatus;
 import com.tharun.vessel_risk.repository.DelayReportRepository;
 import com.tharun.vessel_risk.repository.ShipmentRepository;
 import com.tharun.vessel_risk.repository.VesselScheduleRepository;
-
+import com.tharun.vessel_risk.dto.VoyageRiskSummaryResponse;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -64,4 +64,87 @@ public class DashboardService {
                 .findByShipmentStatus(
                         ShipmentStatus.AT_RISK);
     }
+
+    public VoyageRiskSummaryResponse getVoyageRiskSummary(
+        String voyageNumber) {
+
+        VesselSchedule vessel =
+                vesselScheduleRepository
+                        .findByVoyageNumber(voyageNumber)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Vessel not found"));
+
+        List<Shipment> shipments =
+                shipmentRepository
+                        .findByVesselScheduleId(
+                                vessel.getId());
+
+        Integer totalDelayHours =
+                delayReportRepository
+                        .getTotalDelayHoursByVessel(
+                                vessel.getId());
+
+        Double delayImpactScore =
+                delayReportRepository
+                        .getDelayImpactScoreByVessel(
+                                vessel.getId());
+
+        int atRisk =
+                (int) shipments.stream()
+                        .filter(s ->
+                                s.getShipmentStatus()
+                                        == ShipmentStatus.AT_RISK)
+                        .count();
+
+        int delayed =
+                (int) shipments.stream()
+                        .filter(s ->
+                                s.getShipmentStatus()
+                                        == ShipmentStatus.DELAYED)
+                        .count();
+
+        int onTime =
+                shipments.size() - atRisk - delayed;
+
+        int critical =
+                (int) shipments.stream()
+                        .filter(s ->
+                                s.getPriority()
+                                        == com.tharun.vessel_risk.enums.Priority.CRITICAL
+                                &&
+                                (s.getShipmentStatus()
+                                        == ShipmentStatus.AT_RISK
+                                        ||
+                                s.getShipmentStatus()
+                                        == ShipmentStatus.DELAYED))
+                        .count();
+
+        return VoyageRiskSummaryResponse.builder()
+                .voyageNumber(
+                        vessel.getVoyageNumber())
+                .vesselName(
+                        vessel.getVesselName())
+                .plannedArrivalDate(
+                        vessel.getPlannedArrivalDate())
+                .revisedArrivalDate(
+                        vessel.getCurrentEta())
+                .totalDelayHours(
+                        totalDelayHours)
+                .delayImpactScore(
+                        Math.round(delayImpactScore * 100.0) / 100.0)
+                .totalShipments(
+                        shipments.size())
+                .onTimeShipments(
+                        onTime)
+                .atRiskShipments(
+                        atRisk)
+                .delayedShipments(
+                        delayed)
+                .criticalShipments(
+                        critical)
+                .riskLevel(
+                        vessel.getRiskLevel())
+                .build();
+        }
 }

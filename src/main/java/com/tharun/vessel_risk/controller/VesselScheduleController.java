@@ -8,6 +8,7 @@ import com.tharun.vessel_risk.dto.VesselResponse;
 import com.tharun.vessel_risk.service.VesselScheduleService;
 import lombok.RequiredArgsConstructor;
 import com.tharun.vessel_risk.dto.UpdateVesselStatusRequest;
+import com.tharun.vessel_risk.service.DelayService;
 
 @RestController
 @RequestMapping("/api/vessels")
@@ -15,6 +16,7 @@ import com.tharun.vessel_risk.dto.UpdateVesselStatusRequest;
 public class VesselScheduleController {
 
     private final VesselScheduleService vesselScheduleService;
+    private final DelayService delayService;
 
     @PostMapping("/schedules")
     public ResponseEntity<VesselResponse> createVesselSchedule(
@@ -80,4 +82,16 @@ public class VesselScheduleController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/{voyageNumber}/recalculate-eta")
+        public ResponseEntity<String> recalculateEta(
+
+                @PathVariable String voyageNumber) {
+
+        delayService.recalculateEtaForVoyage(
+                voyageNumber);
+
+        return ResponseEntity.ok(
+                "ETA recalculated successfully");
+        }
 }

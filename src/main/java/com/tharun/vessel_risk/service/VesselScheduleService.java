@@ -2,38 +2,46 @@ package com.tharun.vessel_risk.service;
 
 import org.springframework.stereotype.Service;
 import java.util.List;
+
 import com.tharun.vessel_risk.dto.CreateVesselRequest;
 import com.tharun.vessel_risk.dto.UpdateVesselStatusRequest;
 import com.tharun.vessel_risk.dto.VesselResponse;
+import com.tharun.vessel_risk.entity.Shipment;
 import com.tharun.vessel_risk.entity.VesselSchedule;
+import com.tharun.vessel_risk.enums.RiskLevel;
+import com.tharun.vessel_risk.enums.ShipmentStatus;
 import com.tharun.vessel_risk.enums.VesselStatus;
 import com.tharun.vessel_risk.exception.BusinessValidationException;
 import com.tharun.vessel_risk.exception.DuplicateResourceException;
 import com.tharun.vessel_risk.exception.InvalidStatusTransitionException;
 import com.tharun.vessel_risk.exception.ResourceNotFoundException;
 import com.tharun.vessel_risk.mapper.VesselScheduleMapper;
+import com.tharun.vessel_risk.repository.ShipmentRepository;
 import com.tharun.vessel_risk.repository.VesselScheduleRepository;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+
 import com.tharun.vessel_risk.dto.VesselPageResponse;
-import com.tharun.vessel_risk.enums.RiskLevel;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
+
 public class VesselScheduleService {
 
     private final VesselScheduleRepository vesselScheduleRepository;
 
     private final VesselScheduleMapper vesselScheduleMapper;
 
-    public VesselResponse createVesselSchedule(CreateVesselRequest request) {
+    private final ShipmentRepository shipmentRepository;
+
+    public VesselResponse createVesselSchedule(
+            CreateVesselRequest request) {
 
         validateVesselRequest(request);
 
@@ -41,12 +49,22 @@ public class VesselScheduleService {
                 vesselScheduleMapper.toEntity(request);
 
         VesselSchedule savedVessel =
-                vesselScheduleRepository.save(vesselSchedule);
+        vesselScheduleRepository.save(vesselSchedule);
+
+        log.info(
+                "Vessel schedule created: {} ({})",
+                savedVessel.getVesselName(),
+                savedVessel.getVoyageNumber());
 
         return vesselScheduleMapper.toResponse(savedVessel);
     }
 
-    private void validateVesselRequest(CreateVesselRequest request) {
+    private void validateVesselRequest(
+            CreateVesselRequest request) {
+
+        log.warn(
+        "Duplicate voyage number attempted: {}",
+        request.getVoyageNumber());
 
         if (vesselScheduleRepository.existsByVoyageNumber(
                 request.getVoyageNumber())) {
@@ -77,7 +95,8 @@ public class VesselScheduleService {
         }
     }
 
-    public VesselResponse getVesselByVoyageNumber(String voyageNumber) {
+    public VesselResponse getVesselByVoyageNumber(
+            String voyageNumber) {
 
         VesselSchedule vesselSchedule =
                 vesselScheduleRepository
@@ -87,10 +106,11 @@ public class VesselScheduleService {
                                         "Vessel not found with voyage number : "
                                                 + voyageNumber));
 
-        return vesselScheduleMapper.toResponse(vesselSchedule);
+        return vesselScheduleMapper.toResponse(
+                vesselSchedule);
     }
 
-        public VesselPageResponse getAllVessels(
+    public VesselPageResponse getAllVessels(
             int page,
             int size,
             String sortBy,
@@ -120,78 +140,112 @@ public class VesselScheduleService {
                 .last(vesselPage.isLast())
                 .build();
     }
-            public VesselResponse updateVesselStatus(
-                String voyageNumber,
-                UpdateVesselStatusRequest request) {
 
-            VesselSchedule vesselSchedule =
-                    vesselScheduleRepository
-                            .findByVoyageNumber(voyageNumber)
-                            .orElseThrow(() ->
-                                    new ResourceNotFoundException(
-                                            "Vessel not found with voyage number : "
-                                                    + voyageNumber));
+    public VesselResponse updateVesselStatus(
+            String voyageNumber,
+            UpdateVesselStatusRequest request) {
 
-            validateStatusTransition(
-                    vesselSchedule.getScheduleStatus(),
-                    request.getScheduleStatus());
+        VesselSchedule vesselSchedule =
+                vesselScheduleRepository
+                        .findByVoyageNumber(voyageNumber)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Vessel not found with voyage number : "
+                                                + voyageNumber));
 
-            vesselSchedule.setScheduleStatus(
-                    request.getScheduleStatus());
+        validateStatusTransition(
+                vesselSchedule.getScheduleStatus(),
+                request.getScheduleStatus());
+        
+        VesselStatus oldStatus = vesselSchedule.getScheduleStatus();
 
-            VesselSchedule updatedVessel =
-                    vesselScheduleRepository.save(vesselSchedule);
+        vesselSchedule.setScheduleStatus(
+                request.getScheduleStatus());
 
-            return vesselScheduleMapper.toResponse(updatedVessel);
+        if (request.getScheduleStatus()
+                == VesselStatus.CANCELLED) {
+
+            cancelAssignedShipments(
+                    vesselSchedule);
         }
 
-                private void validateStatusTransition(
-                VesselStatus currentStatus,
-                VesselStatus newStatus) {
+        VesselSchedule updatedVessel =
+        vesselScheduleRepository.save(vesselSchedule);
 
-            switch (currentStatus) {
+        log.info(
+                "Vessel {} status changed from {} to {}",
+                voyageNumber,
+                oldStatus,
+                request.getScheduleStatus());
 
-                case PLANNED:
+        return vesselScheduleMapper.toResponse(updatedVessel);
+    }
 
-                    if (newStatus != VesselStatus.DEPARTED
-                            && newStatus != VesselStatus.CANCELLED) {
+    private void cancelAssignedShipments(
+            VesselSchedule vesselSchedule) {
 
-                        throw new InvalidStatusTransitionException(
-                                "PLANNED vessel can only move to DEPARTED or CANCELLED");
-                    }
-                    break;
+        List<Shipment> shipments =
+                shipmentRepository
+                        .findByVesselScheduleId(
+                                vesselSchedule.getId());
 
-                case DEPARTED:
+        shipments.forEach(shipment -> {
 
-                    if (newStatus != VesselStatus.IN_TRANSIT) {
+            if (shipment.getShipmentStatus()
+                    != ShipmentStatus.DELIVERED) {
 
-                        throw new InvalidStatusTransitionException(
-                                "DEPARTED vessel can only move to IN_TRANSIT");
-                    }
-                    break;
-
-                case IN_TRANSIT:
-
-                    if (newStatus != VesselStatus.ARRIVED) {
-
-                        throw new InvalidStatusTransitionException(
-                                "IN_TRANSIT vessel can only move to ARRIVED");
-                    }
-                    break;
-
-                case ARRIVED:
-
-                    throw new InvalidStatusTransitionException(
-                            "ARRIVED vessel status cannot be changed");
-
-                case CANCELLED:
-
-                    throw new InvalidStatusTransitionException(
-                            "CANCELLED vessel status cannot be changed");
+                shipment.setShipmentStatus(
+                        ShipmentStatus.CANCELLED);
             }
-        }
+        });
 
-            @Enumerated(EnumType.STRING)
-            @Column(name = "risk_level")
-            private RiskLevel riskLevel;
+        shipmentRepository.saveAll(shipments);
+    }
+
+    private void validateStatusTransition(
+            VesselStatus currentStatus,
+            VesselStatus newStatus) {
+
+        switch (currentStatus) {
+
+            case PLANNED:
+
+                if (newStatus != VesselStatus.DEPARTED
+                        && newStatus != VesselStatus.CANCELLED) {
+
+                    throw new InvalidStatusTransitionException(
+                            "PLANNED vessel can only move to DEPARTED or CANCELLED");
+                }
+                break;
+
+            case DEPARTED:
+
+                if (newStatus != VesselStatus.IN_TRANSIT
+                        && newStatus != VesselStatus.CANCELLED) {
+
+                    throw new InvalidStatusTransitionException(
+                            "DEPARTED vessel can only move to IN_TRANSIT or CANCELLED");
+                }
+                break;
+
+            case IN_TRANSIT:
+
+                if (newStatus != VesselStatus.ARRIVED) {
+
+                    throw new InvalidStatusTransitionException(
+                            "IN_TRANSIT vessel can only move to ARRIVED");
+                }
+                break;
+
+            case ARRIVED:
+
+                throw new InvalidStatusTransitionException(
+                        "ARRIVED vessel status cannot be changed");
+
+            case CANCELLED:
+
+                throw new InvalidStatusTransitionException(
+                        "CANCELLED vessel status cannot be changed");
+        }
+    }
 }

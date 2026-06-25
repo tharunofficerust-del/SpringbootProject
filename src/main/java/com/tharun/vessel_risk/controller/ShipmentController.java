@@ -8,8 +8,9 @@ import org.springframework.web.bind.annotation.*;
 
 import com.tharun.vessel_risk.dto.CreateShipmentRequest;
 import com.tharun.vessel_risk.dto.ShipmentResponse;
+import com.tharun.vessel_risk.dto.UpdateShipmentStatusRequest;
 import com.tharun.vessel_risk.service.ShipmentService;
-
+import com.tharun.vessel_risk.dto.ShipmentPageResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -44,4 +45,44 @@ public class ShipmentController {
                 shipmentService.getShipmentsByVoyage(
                         voyageNumber));
     }
+
+    @PutMapping("/{shipmentReference}/status")
+    public ResponseEntity<ShipmentResponse>
+    updateShipmentStatus(
+
+            @PathVariable String shipmentReference,
+
+            @RequestBody UpdateShipmentStatusRequest request) {
+
+        return ResponseEntity.ok(
+                shipmentService.updateShipmentStatus(
+                        shipmentReference,
+                        request));
+    }
+
+    @GetMapping
+public ResponseEntity<ShipmentPageResponse>
+getAllShipments(
+
+        @RequestParam(defaultValue = "0")
+        int page,
+
+        @RequestParam(defaultValue = "5")
+        int size,
+
+        @RequestParam(defaultValue = "id")
+        String sortBy,
+
+        @RequestParam(defaultValue = "asc")
+        String direction) {
+
+    ShipmentPageResponse response =
+            shipmentService.getAllShipments(
+                    page,
+                    size,
+                    sortBy,
+                    direction);
+
+    return ResponseEntity.ok(response);
+}
 }
