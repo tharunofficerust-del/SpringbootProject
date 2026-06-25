@@ -19,7 +19,6 @@ import com.tharun.vessel_risk.mapper.DelayMapper;
 import com.tharun.vessel_risk.repository.DelayReportRepository;
 import com.tharun.vessel_risk.repository.ShipmentRepository;
 import com.tharun.vessel_risk.repository.VesselScheduleRepository;
-import com.tharun.vessel_risk.enums.CargoType;
 import com.tharun.vessel_risk.enums.Priority;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
