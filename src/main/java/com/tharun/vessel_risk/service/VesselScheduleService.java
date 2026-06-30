@@ -8,7 +8,6 @@ import com.tharun.vessel_risk.dto.UpdateVesselStatusRequest;
 import com.tharun.vessel_risk.dto.VesselResponse;
 import com.tharun.vessel_risk.entity.Shipment;
 import com.tharun.vessel_risk.entity.VesselSchedule;
-import com.tharun.vessel_risk.enums.RiskLevel;
 import com.tharun.vessel_risk.enums.ShipmentStatus;
 import com.tharun.vessel_risk.enums.VesselStatus;
 import com.tharun.vessel_risk.exception.BusinessValidationException;
@@ -62,13 +61,9 @@ public class VesselScheduleService {
     private void validateVesselRequest(
             CreateVesselRequest request) {
 
-        log.warn(
-        "Duplicate voyage number attempted: {}",
-        request.getVoyageNumber());
-
         if (vesselScheduleRepository.existsByVoyageNumber(
                 request.getVoyageNumber())) {
-
+            log.warn("Duplicate voyage number attempted: {}",request.getVoyageNumber());
             throw new DuplicateResourceException(
                     "Voyage number already exists : "
                             + request.getVoyageNumber());

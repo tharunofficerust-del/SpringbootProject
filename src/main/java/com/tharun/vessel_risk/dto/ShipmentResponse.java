@@ -30,4 +30,6 @@ public class ShipmentResponse {
     private ShipmentStatus shipmentStatus;
 
     private String voyageNumber;
+
+    private String deliveryClassification;
 }

@@ -1,5 +1,7 @@
 package com.tharun.vessel_risk.mapper;
 
+import java.time.LocalDateTime;
+
 import org.springframework.stereotype.Component;
 
 import com.tharun.vessel_risk.dto.ShipmentResponse;
@@ -9,6 +11,8 @@ import com.tharun.vessel_risk.entity.Shipment;
 public class ShipmentMapper {
 
     public ShipmentResponse toResponse(Shipment shipment) {
+
+        String classification = getDeliveryClassification(shipment);
 
         return ShipmentResponse.builder()
                 .id(shipment.getId())
@@ -21,6 +25,20 @@ public class ShipmentMapper {
                 .shipmentStatus(shipment.getShipmentStatus())
                 .voyageNumber(
                         shipment.getVesselSchedule().getVoyageNumber())
+                .deliveryClassification(classification)
                 .build();
+    }
+
+    private String getDeliveryClassification(Shipment shipment) {
+
+        LocalDateTime currentEta = shipment.getVesselSchedule().getCurrentEta();
+
+        LocalDateTime requiredDate = shipment.getRequiredDeliveryDate();
+
+        if (currentEta.isAfter(requiredDate)) {
+            return "AT_RISK";
+        }
+
+        return "ON_TIME";
     }
 }

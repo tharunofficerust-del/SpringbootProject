@@ -1,4 +1,5 @@
 package com.tharun.vessel_risk.controller;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -6,6 +7,8 @@ import com.tharun.vessel_risk.dto.CreateVesselRequest;
 import com.tharun.vessel_risk.dto.VesselPageResponse;
 import com.tharun.vessel_risk.dto.VesselResponse;
 import com.tharun.vessel_risk.service.VesselScheduleService;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import com.tharun.vessel_risk.dto.UpdateVesselStatusRequest;
 import com.tharun.vessel_risk.service.DelayService;
@@ -15,83 +18,74 @@ import com.tharun.vessel_risk.service.DelayService;
 @RequiredArgsConstructor
 public class VesselScheduleController {
 
-    private final VesselScheduleService vesselScheduleService;
-    private final DelayService delayService;
+        private final VesselScheduleService vesselScheduleService;
+        private final DelayService delayService;
 
-    @PostMapping("/schedules")
-    public ResponseEntity<VesselResponse> createVesselSchedule(
-            @RequestBody CreateVesselRequest request) {
+        @PostMapping("/schedules")
+        public ResponseEntity<VesselResponse> createVesselSchedule(
+                        @Valid @RequestBody CreateVesselRequest request) {
 
-        VesselResponse response =
-                vesselScheduleService.createVesselSchedule(request);
+                VesselResponse response = vesselScheduleService.createVesselSchedule(request);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(response);
-    }
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(response);
+        }
 
-    @GetMapping("/schedules/{voyageNumber}")
-    public ResponseEntity<VesselResponse> getVesselByVoyageNumber(
-            @PathVariable String voyageNumber) {
+        @GetMapping("/schedules/{voyageNumber}")
+        public ResponseEntity<VesselResponse> getVesselByVoyageNumber(
+                        @PathVariable String voyageNumber) {
 
-        VesselResponse response =
-                vesselScheduleService.getVesselByVoyageNumber(voyageNumber);
+                VesselResponse response = vesselScheduleService.getVesselByVoyageNumber(voyageNumber);
 
-        return ResponseEntity.ok(response);
-    }
+                return ResponseEntity.ok(response);
+        }
 
+        // pagination :
 
-    //pagination  :
+        @GetMapping("/schedules")
+        public ResponseEntity<VesselPageResponse> getAllVessels(
 
-    @GetMapping("/schedules")
-    public ResponseEntity<VesselPageResponse> getAllVessels(
+                        @RequestParam(defaultValue = "0") int page,
 
-            @RequestParam(defaultValue = "0")
-            int page,
+                        @RequestParam(defaultValue = "5") int size,
 
-            @RequestParam(defaultValue = "5")
-            int size,
+                        @RequestParam(defaultValue = "id") String sortBy,
 
-            @RequestParam(defaultValue = "id")
-            String sortBy,
+                        @RequestParam(defaultValue = "asc") String direction) {
 
-            @RequestParam(defaultValue = "asc")
-            String direction) {
+                VesselPageResponse response = vesselScheduleService.getAllVessels(
+                                page,
+                                size,
+                                sortBy,
+                                direction);
 
-        VesselPageResponse response =
-                vesselScheduleService.getAllVessels(
-                        page,
-                        size,
-                        sortBy,
-                        direction);
+                return ResponseEntity.ok(response);
+        }
 
-        return ResponseEntity.ok(response);
-    }
+        @PutMapping("/schedules/{voyageNumber}/status")
+        public ResponseEntity<VesselResponse> updateVesselStatus(
 
-    @PutMapping("/schedules/{voyageNumber}/status")
-    public ResponseEntity<VesselResponse> updateVesselStatus(
+                        @PathVariable String voyageNumber,
 
-            @PathVariable String voyageNumber,
+                        @RequestBody UpdateVesselStatusRequest request) {
 
-            @RequestBody UpdateVesselStatusRequest request) {
+                VesselResponse response = vesselScheduleService.updateVesselStatus(
+                                voyageNumber,
+                                request);
 
-        VesselResponse response =
-                vesselScheduleService.updateVesselStatus(
-                        voyageNumber,
-                        request);
+                return ResponseEntity.ok(response);
+        }
 
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/{voyageNumber}/recalculate-eta")
+        @PostMapping("/{voyageNumber}/recalculate-eta")
         public ResponseEntity<String> recalculateEta(
 
-                @PathVariable String voyageNumber) {
+                        @PathVariable String voyageNumber) {
 
-        delayService.recalculateEtaForVoyage(
-                voyageNumber);
+                delayService.recalculateEtaForVoyage(
+                                voyageNumber);
 
-        return ResponseEntity.ok(
-                "ETA recalculated successfully");
+                return ResponseEntity.ok(
+                                "ETA recalculated successfully");
         }
 }
