@@ -56,6 +56,7 @@ public class ShipmentService {
                                                 "Vessel not found"));
 
                 validateShipmentRequest(request, vessel);
+                validateCapacity(request,vessel);
 
                 Shipment shipment = Shipment.builder()
                                 .shipmentReference(request.getShipmentReference())
@@ -66,7 +67,7 @@ public class ShipmentService {
                                 .requiredDeliveryDate(
                                                 request.getRequiredDeliveryDate())
                                 .shipmentStatus(
-                                                ShipmentStatus.CREATED)
+                                                ShipmentStatus.ASSIGNED_TO_VESSEL)
                                 .vesselSchedule(vessel)
                                 .build();
 
@@ -170,22 +171,14 @@ public class ShipmentService {
                                 updatedShipment);
         }
 
+
+        //status transition validation - shipment
+
         private void validateShipmentStatusTransition(
                         ShipmentStatus currentStatus,
                         ShipmentStatus newStatus) {
 
                 switch (currentStatus) {
-
-                        case CREATED:
-
-                                if (newStatus != ShipmentStatus.ASSIGNED_TO_VESSEL
-                                                && newStatus != ShipmentStatus.CANCELLED) {
-
-                                        throw new InvalidStatusTransitionException(
-                                                        "CREATED shipment can only move to ASSIGNED_TO_VESSEL or CANCELLED");
-                                }
-
-                                break;
 
                         case ASSIGNED_TO_VESSEL:
 
@@ -290,6 +283,35 @@ public class ShipmentService {
                                 .totalElements(shipmentPage.getTotalElements())
                                 .last(shipmentPage.isLast())
                                 .build();
+        }
+
+        private void validateCapacity(
+        CreateShipmentRequest request,
+        VesselSchedule vessel) {
+
+        double usedCapacity =
+        shipmentRepository
+                .findByVesselScheduleId(
+                        vessel.getId())
+                .stream()
+                .mapToDouble(
+                        shipment -> shipment.getCargoWeight() == null
+                                ? 0
+                                : shipment.getCargoWeight())
+                .sum();
+
+        double totalCapacity =
+                usedCapacity
+                        + request.getCargoWeight();
+
+        if (totalCapacity
+                > vessel.getVesselCapacityTEU()) {
+
+                throw new BusinessValidationException(
+                        "Vessel capacity exceeded. Available capacity: "
+                                + (vessel.getVesselCapacityTEU()
+                                        - usedCapacity));
+        }
         }
 
 }

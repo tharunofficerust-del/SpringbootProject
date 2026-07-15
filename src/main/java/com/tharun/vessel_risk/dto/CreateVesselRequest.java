@@ -27,12 +27,17 @@ public class CreateVesselRequest {
     @NotBlank(message = "Destination port cannot be blank")
     private String destinationPort;
 
+    @NotBlank(message = "Planned departure date is required")
     private LocalDateTime plannedDepartureDate;
 
+    @NotBlank(message = "Planned arrival date is required")
     private LocalDateTime plannedArrivalDate;
+
+    @NotBlank(message = "Status is required")
+    private VesselStatus scheduleStatus;
 
     @Positive(message = "Capacity must be greater than zero")
     private Integer vesselCapacityTEU;
 
-    private VesselStatus scheduleStatus;
+
 }

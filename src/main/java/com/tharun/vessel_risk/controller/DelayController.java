@@ -10,8 +10,10 @@ import com.tharun.vessel_risk.dto.CreateDelayReportRequest;
 import com.tharun.vessel_risk.dto.DelayResponse;
 import com.tharun.vessel_risk.service.DelayService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+@Valid
 @RestController
 @RequestMapping("/api/delays")
 @RequiredArgsConstructor
@@ -36,5 +38,18 @@ public class DelayController {
 
         return ResponseEntity.ok(
                 delayService.getDelayReports(voyageNumber));
+    }
+
+    @DeleteMapping("/{delayId}")
+    public ResponseEntity<Void>
+    deleteDelayReport(
+            @PathVariable Long delayId) {
+
+        delayService.deleteDelayReport(
+                delayId);
+
+        return ResponseEntity
+                .noContent()
+                .build();
     }
 }

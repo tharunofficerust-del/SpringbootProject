@@ -10,9 +10,13 @@ import com.tharun.vessel_risk.dto.CreateShipmentRequest;
 import com.tharun.vessel_risk.dto.ShipmentResponse;
 import com.tharun.vessel_risk.dto.UpdateShipmentStatusRequest;
 import com.tharun.vessel_risk.service.ShipmentService;
+
+import jakarta.validation.Valid;
+
 import com.tharun.vessel_risk.dto.ShipmentPageResponse;
 import lombok.RequiredArgsConstructor;
 
+@Valid
 @RestController
 @RequestMapping("/api/shipments")
 @RequiredArgsConstructor

@@ -22,7 +22,7 @@ import com.tharun.vessel_risk.repository.VesselScheduleRepository;
 import com.tharun.vessel_risk.enums.Priority;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
+import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -36,6 +36,7 @@ public class DelayService {
 
     private final DelayMapper delayMapper;
 
+    @Transactional
     public DelayResponse createDelayReport(
             CreateDelayReportRequest request) {
 
@@ -130,12 +131,12 @@ public class DelayService {
 
         Integer totalDelayHours =
                 delayReportRepository
-                        .getTotalDelayHoursByVessel(
+                        .getTotalDelayHoursByVessel(              //based on the delay
                                 vesselSchedule.getId());
 
         vesselSchedule.setCurrentEta(
                 vesselSchedule.getPlannedArrivalDate()
-                        .plusHours(totalDelayHours));
+                        .plusHours(totalDelayHours));            // adds the delayhours
 
         vesselScheduleRepository.save(vesselSchedule);
         log.info(
@@ -143,6 +144,9 @@ public class DelayService {
         vesselSchedule.getVoyageNumber(),
         vesselSchedule.getCurrentEta());
     }
+
+
+    // set delay calculation 
 
     private void updateRiskLevel(
             VesselSchedule vesselSchedule) {
@@ -192,7 +196,7 @@ public class DelayService {
 
                 if (shipment.getRequiredDeliveryDate() == null) {
 
-                return;
+                        return;
                 }
 
                 boolean etaExceeded =
@@ -201,6 +205,9 @@ public class DelayService {
                                         shipment.getRequiredDeliveryDate());
 
                 if (!etaExceeded) {
+
+                shipment.setShipmentStatus(
+                        ShipmentStatus.IN_TRANSIT);
 
                 return;
                 }
@@ -263,21 +270,49 @@ public class DelayService {
         vesselSchedule.getVoyageNumber());
         }
 
-    public void recalculateEtaForVoyage(
-        String voyageNumber) {
+//     public void recalculateEtaForVoyage(
+//         String voyageNumber) {
 
-        VesselSchedule vesselSchedule =
-                vesselScheduleRepository
-                        .findByVoyageNumber(
-                                voyageNumber)
+//         VesselSchedule vesselSchedule =
+//                 vesselScheduleRepository
+//                         .findByVoyageNumber(
+//                                 voyageNumber)
+//                         .orElseThrow(() ->
+//                                 new ResourceNotFoundException(
+//                                         "Vessel not found"));
+
+//         recalculateEta(vesselSchedule);
+
+//         updateRiskLevel(vesselSchedule);
+
+//         updateShipmentRiskStatus(vesselSchedule);
+//         }
+
+        @Transactional
+        public void deleteDelayReport(
+                Long delayId) {
+
+        DelayReport delayReport =
+                delayReportRepository
+                        .findById(delayId)
                         .orElseThrow(() ->
                                 new ResourceNotFoundException(
-                                        "Vessel not found"));
+                                        "Delay report not found"));
 
-        recalculateEta(vesselSchedule);
+        VesselSchedule vessel =
+                delayReport.getVesselSchedule();
 
-        updateRiskLevel(vesselSchedule);
+        delayReportRepository.delete(
+                delayReport);
 
-        updateShipmentRiskStatus(vesselSchedule);
+        recalculateEta(vessel);
+
+        updateRiskLevel(vessel);
+
+        updateShipmentRiskStatus(vessel);
+
+        log.info(
+                "Delay report {} deleted successfully",
+                delayId);
         }
 }

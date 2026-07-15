@@ -12,12 +12,16 @@ import com.tharun.vessel_risk.dto.DashboardSummaryResponse;
 import com.tharun.vessel_risk.entity.Shipment;
 import com.tharun.vessel_risk.entity.VesselSchedule;
 import com.tharun.vessel_risk.service.DashboardService;
+
+import jakarta.validation.Valid;
+
 import com.tharun.vessel_risk.dto.VoyageRiskSummaryResponse;
 import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
+@Valid
 public class DashboardController {
 
     private final DashboardService dashboardService;

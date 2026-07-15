@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import com.tharun.vessel_risk.dto.UpdateVesselStatusRequest;
 import com.tharun.vessel_risk.service.DelayService;
 
+@Valid
 @RestController
 @RequestMapping("/api/vessels")
 @RequiredArgsConstructor
@@ -77,15 +78,19 @@ public class VesselScheduleController {
                 return ResponseEntity.ok(response);
         }
 
-        @PostMapping("/{voyageNumber}/recalculate-eta")
-        public ResponseEntity<String> recalculateEta(
 
-                        @PathVariable String voyageNumber) {
+        //ETA calculated automatically when delay report is created so this
+        // is not useful. maybe used for future enhancements.
 
-                delayService.recalculateEtaForVoyage(
-                                voyageNumber);
+        // @PostMapping("/{voyageNumber}/recalculate-eta")
+        // public ResponseEntity<String> recalculateEta(
 
-                return ResponseEntity.ok(
-                                "ETA recalculated successfully");
-        }
+        //                 @PathVariable String voyageNumber) {
+
+        //         delayService.recalculateEtaForVoyage(
+        //                         voyageNumber);
+
+        //         return ResponseEntity.ok(
+        //                         "ETA recalculated successfully");
+        // }
 }

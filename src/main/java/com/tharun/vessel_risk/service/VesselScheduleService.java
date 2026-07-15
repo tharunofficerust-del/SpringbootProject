@@ -17,7 +17,7 @@ import com.tharun.vessel_risk.exception.ResourceNotFoundException;
 import com.tharun.vessel_risk.mapper.VesselScheduleMapper;
 import com.tharun.vessel_risk.repository.ShipmentRepository;
 import com.tharun.vessel_risk.repository.VesselScheduleRepository;
-
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -40,12 +40,16 @@ public class VesselScheduleService {
     private final ShipmentRepository shipmentRepository;
 
     public VesselResponse createVesselSchedule(
-            CreateVesselRequest request) {
+            CreateVesselRequest request) {          //from dto - createvesselrequest
 
         validateVesselRequest(request);
 
         VesselSchedule vesselSchedule =
-                vesselScheduleMapper.toEntity(request);
+        vesselScheduleMapper.toEntity(request);
+
+        vesselSchedule.setScheduleStatus(           //forcing entry to be planned only - 2 step
+                VesselStatus.PLANNED);
+                
 
         VesselSchedule savedVessel =
         vesselScheduleRepository.save(vesselSchedule);
@@ -53,7 +57,7 @@ public class VesselScheduleService {
         log.info(
                 "Vessel schedule created: {} ({})",
                 savedVessel.getVesselName(),
-                savedVessel.getVoyageNumber());
+                savedVessel.getVoyageNumber());       //saved vessel - from repo
 
         return vesselScheduleMapper.toResponse(savedVessel);
     }
@@ -61,7 +65,7 @@ public class VesselScheduleService {
     private void validateVesselRequest(
             CreateVesselRequest request) {
 
-        if (vesselScheduleRepository.existsByVoyageNumber(
+        if (vesselScheduleRepository.existsByVoyageNumber(       //duplicate
                 request.getVoyageNumber())) {
             log.warn("Duplicate voyage number attempted: {}",request.getVoyageNumber());
             throw new DuplicateResourceException(
@@ -87,6 +91,12 @@ public class VesselScheduleService {
 
             throw new BusinessValidationException(
                     "Vessel capacity must be greater than zero");
+        }
+
+        if (request.getScheduleStatus() != VesselStatus.PLANNED) {
+
+        throw new BusinessValidationException(
+                "New vessels must be created with PLANNED status");
         }
     }
 
@@ -136,6 +146,7 @@ public class VesselScheduleService {
                 .build();
     }
 
+    @Transactional
     public VesselResponse updateVesselStatus(
             String voyageNumber,
             UpdateVesselStatusRequest request) {
@@ -157,6 +168,16 @@ public class VesselScheduleService {
         vesselSchedule.setScheduleStatus(
                 request.getScheduleStatus());
 
+        //cascade concept
+        // if vessel arrived - shipment should be delivered
+        if (request.getScheduleStatus()
+        == VesselStatus.ARRIVED) {
+
+        markShipmentsDelivered(
+                vesselSchedule);
+        }
+
+        // if vessel cancelled - shipment cancel
         if (request.getScheduleStatus()
                 == VesselStatus.CANCELLED) {
 
@@ -176,6 +197,34 @@ public class VesselScheduleService {
         return vesselScheduleMapper.toResponse(updatedVessel);
     }
 
+    // marks shipment as deliverd after vessel arrived
+    private void markShipmentsDelivered(
+        VesselSchedule vesselSchedule) {
+
+        List<Shipment> shipments =
+                shipmentRepository
+                        .findByVesselScheduleId(
+                                vesselSchedule.getId());
+
+        shipments.forEach(shipment -> {
+
+                if (shipment.getShipmentStatus()
+                        != ShipmentStatus.CANCELLED) {
+
+                shipment.setShipmentStatus(
+                        ShipmentStatus.DELIVERED);
+                }
+        });
+
+        shipmentRepository.saveAll(shipments);
+
+        log.info(
+                "{} shipments marked as DELIVERED for voyage {}",
+                shipments.size(),
+                vesselSchedule.getVoyageNumber());
+        }
+
+        // marks shipment cancelled 
     private void cancelAssignedShipments(
             VesselSchedule vesselSchedule) {
 
@@ -197,6 +246,9 @@ public class VesselScheduleService {
         shipmentRepository.saveAll(shipments);
     }
 
+
+    // vessel transiton validation 
+
     private void validateStatusTransition(
             VesselStatus currentStatus,
             VesselStatus newStatus) {
@@ -215,11 +267,10 @@ public class VesselScheduleService {
 
             case DEPARTED:
 
-                if (newStatus != VesselStatus.IN_TRANSIT
-                        && newStatus != VesselStatus.CANCELLED) {
+                if (newStatus != VesselStatus.IN_TRANSIT) {
 
                     throw new InvalidStatusTransitionException(
-                            "DEPARTED vessel can only move to IN_TRANSIT or CANCELLED");
+                            "DEPARTED vessel can only move to IN_TRANSIT ");
                 }
                 break;
 
