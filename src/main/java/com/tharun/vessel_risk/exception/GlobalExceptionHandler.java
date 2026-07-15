@@ -113,5 +113,26 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest()
                 .body(response);
-}
+        }
+
+        // Generic exception handler for unexpected errors
+        @ExceptionHandler(Exception.class)
+        public ResponseEntity<ErrorResponse> handleGenericException(
+                Exception ex,
+                HttpServletRequest request) {
+
+        //ex.printStackTrace();
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(
+                        ErrorResponse.builder()
+                        .statusCode(500)
+                        .error("Application Error")
+                        .message(ex.getMessage()) // TEMPORARY
+                        .path(request.getRequestURI())
+                        .timestamp(LocalDateTime.now())
+                        .build()
+                );
+        }
 }

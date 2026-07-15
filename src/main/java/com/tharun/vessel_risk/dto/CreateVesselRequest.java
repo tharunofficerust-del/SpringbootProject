@@ -34,7 +34,7 @@ public class CreateVesselRequest {
     @NotNull(message = "Planned arrival date is required")
     private LocalDateTime plannedArrivalDate;
 
-    @NotBlank(message = "Status is required")
+    @NotNull(message = "Status is required")
     private VesselStatus scheduleStatus;
 
     @Positive(message = "Capacity must be greater than zero")

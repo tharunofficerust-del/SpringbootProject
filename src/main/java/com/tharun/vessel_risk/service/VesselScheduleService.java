@@ -87,10 +87,10 @@ public class VesselScheduleService {
                     "Planned arrival date must be after planned departure date");
         }
 
-        if (request.getVesselCapacityTEU() <= 0) {
+        if(request.getVesselCapacityTEU() == null || request.getVesselCapacityTEU() <= 0) {
 
-            throw new BusinessValidationException(
-                    "Vessel capacity must be greater than zero");
+        throw new BusinessValidationException(
+                "Invalid capacity.");
         }
 
         if (request.getScheduleStatus() != VesselStatus.PLANNED) {
