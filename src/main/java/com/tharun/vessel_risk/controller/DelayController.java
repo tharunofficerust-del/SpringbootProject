@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.tharun.vessel_risk.dto.CreateDelayReportRequest;
 import com.tharun.vessel_risk.dto.DelayResponse;
+import com.tharun.vessel_risk.dto.UpdateDelayRequest;
 import com.tharun.vessel_risk.service.DelayService;
 
 import jakarta.validation.Valid;
@@ -52,4 +53,17 @@ public class DelayController {
                 .noContent()
                 .build();
     }
+    
+    @PutMapping("/{delayId}")
+        public ResponseEntity<DelayResponse> updateDelayReport(
+                @PathVariable Long delayId,
+                @Valid @RequestBody UpdateDelayRequest request) {
+
+        DelayResponse response =
+                delayService.updateDelayReport(
+                        delayId,
+                        request);
+
+        return ResponseEntity.ok(response);
+        }
 }

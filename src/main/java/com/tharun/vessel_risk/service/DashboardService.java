@@ -123,7 +123,7 @@ public class DashboardService {
                                         == ShipmentStatus.DELAYED))
                         .count();
 
-        return VoyageRiskSummaryResponse.builder()
+        return VoyageRiskSummaryResponse.builder()  
                 .voyageNumber(
                         vessel.getVoyageNumber())
                 .vesselName(

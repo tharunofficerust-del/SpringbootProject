@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.tharun.vessel_risk.dto.CreateDelayReportRequest;
 import com.tharun.vessel_risk.dto.DelayResponse;
+import com.tharun.vessel_risk.dto.UpdateDelayRequest;
 import com.tharun.vessel_risk.entity.DelayReport;
 import com.tharun.vessel_risk.entity.Shipment;
 import com.tharun.vessel_risk.entity.VesselSchedule;
@@ -314,5 +315,47 @@ public class DelayService {
         log.info(
                 "Delay report {} deleted successfully",
                 delayId);
+        }
+
+        // Update delay report after entering delay hours with remarks.
+        // This will recalculate ETA, risk level and shipment risk status.
+        
+        @Transactional
+        public DelayResponse updateDelayReport(
+                Long delayId,
+                UpdateDelayRequest request) {
+
+        DelayReport delayReport =
+                delayReportRepository.findById(delayId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Delay report not found"));
+
+        VesselSchedule vessel =
+                delayReport.getVesselSchedule();
+
+        if (vessel.getScheduleStatus() == VesselStatus.ARRIVED
+                || vessel.getScheduleStatus() == VesselStatus.CANCELLED) {
+
+                throw new BusinessValidationException(
+                        "Cannot update delays for ARRIVED or CANCELLED vessels.");
+        }
+
+        delayReport.setDelayHours(
+                request.getDelayHours());
+
+        delayReport.setRemarks(
+                request.getRemarks());
+
+        DelayReport updatedDelay =
+                delayReportRepository.save(delayReport);
+
+        recalculateEta(vessel);
+
+        updateRiskLevel(vessel);
+
+        updateShipmentRiskStatus(vessel);
+
+        return delayMapper.toResponse(updatedDelay);
         }
 }
