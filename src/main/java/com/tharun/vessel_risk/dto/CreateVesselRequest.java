@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import com.tharun.vessel_risk.enums.VesselStatus;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,10 +28,10 @@ public class CreateVesselRequest {
     @NotBlank(message = "Destination port cannot be blank")
     private String destinationPort;
 
-    @NotBlank(message = "Planned departure date is required")
+    @NotNull(message = "Planned departure date is required")
     private LocalDateTime plannedDepartureDate;
 
-    @NotBlank(message = "Planned arrival date is required")
+    @NotNull(message = "Planned arrival date is required")
     private LocalDateTime plannedArrivalDate;
 
     @NotBlank(message = "Status is required")
