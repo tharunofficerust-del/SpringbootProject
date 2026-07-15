@@ -1,15 +1,18 @@
 package com.tharun.vessel_risk.exception;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-
 import com.tharun.vessel_risk.dto.ErrorResponse;
-
 import jakarta.servlet.http.HttpServletRequest;
+
 
 // Throw exception
 //       ↓
@@ -74,4 +77,41 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(response);
     }
+
+    //returning multiple validation errors in a single response
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<Map<String, String>> handleValidationErrors(
+                MethodArgumentNotValidException ex) {
+
+        Map<String, String> errors = new HashMap<>();
+
+        ex.getBindingResult()
+                .getFieldErrors()
+                .forEach(error -> errors.put(
+                        error.getField(),
+                        error.getDefaultMessage()));
+
+        return ResponseEntity.badRequest()
+                .body(errors);
+        }
+
+        //Malformed JSON or invalid enum value handling
+
+        @ExceptionHandler(HttpMessageNotReadableException.class)
+        public ResponseEntity<ErrorResponse> handleMalformedJson(
+                HttpMessageNotReadableException ex,
+                HttpServletRequest request) {
+
+        ErrorResponse response = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .statusCode(400)
+                .error("Malformed JSON")
+                .message("Invalid request body or enum value.")
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.badRequest()
+                .body(response);
+}
 }

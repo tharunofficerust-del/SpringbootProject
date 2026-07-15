@@ -11,7 +11,7 @@ import com.tharun.vessel_risk.service.VesselScheduleService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import com.tharun.vessel_risk.dto.UpdateVesselStatusRequest;
-import com.tharun.vessel_risk.service.DelayService;
+
 
 @Valid
 @RestController
@@ -20,7 +20,7 @@ import com.tharun.vessel_risk.service.DelayService;
 public class VesselScheduleController {
 
         private final VesselScheduleService vesselScheduleService;
-        private final DelayService delayService;
+
 
         @PostMapping("/schedules")
         public ResponseEntity<VesselResponse> createVesselSchedule(
