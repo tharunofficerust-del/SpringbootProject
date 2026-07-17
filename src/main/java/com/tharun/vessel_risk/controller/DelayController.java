@@ -66,4 +66,14 @@ public class DelayController {
 
         return ResponseEntity.ok(response);
         }
+
+     @GetMapping
+        public ResponseEntity<List<DelayResponse>>
+        getAllDelayReports() {
+
+        return ResponseEntity.ok(
+                delayService
+                        .getAllDelayReports()
+        );
+        }
 }

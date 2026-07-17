@@ -37,4 +37,6 @@ public class VesselResponse {
     private VesselStatus scheduleStatus;
 
     private RiskLevel riskLevel;
+
+    //private Integer totalDelayHours;
 }

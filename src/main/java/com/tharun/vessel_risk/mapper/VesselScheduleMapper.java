@@ -40,6 +40,7 @@ public class VesselScheduleMapper {
                 .vesselCapacityTEU(vesselSchedule.getVesselCapacityTEU())
                 .scheduleStatus(vesselSchedule.getScheduleStatus())
                 .riskLevel(vesselSchedule.getRiskLevel())
+                //.totalDelayHours(totalDelayHours)
                 .build();
     }
 }

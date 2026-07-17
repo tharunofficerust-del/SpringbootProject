@@ -13,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 import com.tharun.vessel_risk.dto.UpdateVesselStatusRequest;
 
 
-@Valid
+
 @RestController
 @RequestMapping("/api/vessels")
 @RequiredArgsConstructor

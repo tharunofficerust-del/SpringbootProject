@@ -14,6 +14,7 @@ import com.tharun.vessel_risk.enums.CargoType;
 import com.tharun.vessel_risk.enums.RiskLevel;
 import com.tharun.vessel_risk.enums.ShipmentStatus;
 import com.tharun.vessel_risk.enums.VesselStatus;
+import org.springframework.data.domain.Sort;
 import com.tharun.vessel_risk.exception.BusinessValidationException;
 import com.tharun.vessel_risk.exception.ResourceNotFoundException;
 import com.tharun.vessel_risk.mapper.DelayMapper;
@@ -126,6 +127,20 @@ public class DelayService {
                 .map(delayMapper::toResponse)
                 .toList();
     }
+
+    //for frontend
+        public List<DelayResponse> getAllDelayReports() {
+                return delayReportRepository
+                        .findAll(
+                                Sort.by(
+                                        Sort.Direction.DESC,
+                                        "id"
+                                )
+                        )
+                        .stream()
+                        .map(delayMapper::toResponse)
+                        .toList();
+                }
 
     // recalculate the ETA based on delay
     
@@ -360,4 +375,7 @@ public class DelayService {
 
         return delayMapper.toResponse(updatedDelay);
         }
+
+
+        
 }
