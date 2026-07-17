@@ -19,6 +19,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.util.List;
+
+import org.springframework.web.bind.annotation.CrossOrigin;
+
 import jakarta.persistence.OneToMany;
 
 @Entity

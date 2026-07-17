@@ -2,6 +2,8 @@ package com.tharun.vessel_risk.entity;
 
 import java.time.LocalDateTime;
 
+import org.springframework.web.bind.annotation.CrossOrigin;
+
 import com.tharun.vessel_risk.enums.CargoType;
 import com.tharun.vessel_risk.enums.Priority;
 import com.tharun.vessel_risk.enums.ShipmentStatus;

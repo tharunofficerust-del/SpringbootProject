@@ -64,6 +64,7 @@ public class VesselScheduleController {
                 return ResponseEntity.ok(response);
         }
 
+        // manual update to IN_TRANSIT 
         @PutMapping("/schedules/{voyageNumber}/status")
         public ResponseEntity<VesselResponse> updateVesselStatus(
 

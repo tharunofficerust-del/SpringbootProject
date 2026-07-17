@@ -57,6 +57,8 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    //validation for wrong inputs and transitoin
+
     @ExceptionHandler({
             BusinessValidationException.class,
             InvalidInputException.class,

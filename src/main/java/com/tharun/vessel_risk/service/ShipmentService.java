@@ -231,6 +231,8 @@ public class ShipmentService {
 
                                 throw new InvalidStatusTransitionException(
                                                 "CANCELLED shipment status cannot be changed");
+                        default:
+                                break;
                 }
         }
 
