@@ -53,7 +53,7 @@ public class DelayService {
         validateDelayRequest(request, vessel);
 
         DelayReport delayReport =
-                DelayReport.builder()
+                DelayReport.builder()               
                         .delayReason(request.getDelayReason())
                         .delayHours(request.getDelayHours())
                         .reportedPort(request.getReportedPort())
@@ -218,14 +218,25 @@ public class DelayService {
                 }
 
                 boolean etaExceeded =
-                        vesselSchedule.getCurrentEta()
-                                .isAfter(
-                                        shipment.getRequiredDeliveryDate());
+        vesselSchedule.getCurrentEta()
+                .isAfter(
+                        shipment.getRequiredDeliveryDate());
 
-                if (!etaExceeded) {
+
+                // No delay -> still in transit
+                if (totalDelayHours == null || totalDelayHours == 0) {
 
                 shipment.setShipmentStatus(
                         ShipmentStatus.IN_TRANSIT);
+
+                return;
+                }
+
+                // ETA exceeded -> delayed immediately
+                if (etaExceeded) {
+
+                shipment.setShipmentStatus(
+                        ShipmentStatus.DELAYED);
 
                 return;
                 }
@@ -267,7 +278,7 @@ public class DelayService {
                 return;
                 }
 
-                // General rule
+                // General Rule
                 if (totalDelayHours <= 48) {
 
                 shipment.setShipmentStatus(

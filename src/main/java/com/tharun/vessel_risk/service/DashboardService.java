@@ -30,7 +30,7 @@ public class DashboardService {
 
     public DashboardSummaryResponse getSummary() {
 
-        return DashboardSummaryResponse.builder()
+        return DashboardSummaryResponse.builder()               //builder is a lombok annotation used for cleaner code
                 .totalVessels(
                         vesselScheduleRepository.count())
                 .totalShipments(

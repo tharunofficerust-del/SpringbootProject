@@ -20,7 +20,7 @@ import com.tharun.vessel_risk.repository.VesselScheduleRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Page;               //for pagination
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -180,6 +180,16 @@ public class VesselScheduleService {
                 vesselSchedule);
         }
 
+        //mark shipment in transit
+        if (request.getScheduleStatus()
+                == VesselStatus.DEPARTED
+                || request.getScheduleStatus()
+                        == VesselStatus.IN_TRANSIT) {
+
+        markShipmentsInTransit(
+                vesselSchedule);
+        }
+
         // if vessel cancelled - shipment cancel
         if (request.getScheduleStatus()
                 == VesselStatus.CANCELLED) {
@@ -297,4 +307,30 @@ public class VesselScheduleService {
                         "CANCELLED vessel status cannot be changed");
         }
     }
+
+    private void markShipmentsInTransit(
+        VesselSchedule vesselSchedule) {
+
+                List<Shipment> shipments =
+                        shipmentRepository
+                                .findByVesselScheduleId(
+                                        vesselSchedule.getId());
+
+                shipments.forEach(shipment -> {
+
+                        if (shipment.getShipmentStatus()
+                                == ShipmentStatus.ASSIGNED_TO_VESSEL) {
+
+                        shipment.setShipmentStatus(
+                                ShipmentStatus.IN_TRANSIT);
+                        }
+                });
+
+                shipmentRepository.saveAll(shipments);
+
+                log.info(
+                        "{} shipments marked as IN_TRANSIT for voyage {}",
+                        shipments.size(),
+                        vesselSchedule.getVoyageNumber());
+                }
 }

@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@Builder
+@Builder    //lombok annotation
 public class DashboardSummaryResponse {
 
     private long totalVessels;
